@@ -1,15 +1,67 @@
+using CoreWebApp.Classes;
+using Microsoft.Extensions.Caching.Memory;
+
 namespace corewebtest;
 
 public class RateLimiterTests
 {
+    private IMemoryCache _cache; 
+
     [SetUp]
     public void Setup()
     {
+        _cache = new MemoryCache(new MemoryCacheOptions());
     }
 
-    [Test]
-    public void Test()
+
+    [TestCase(5, 10, "1")]
+    public async Task RateLimit_ShouldPassWhenInLimit(int windowSize, int maxLimit, string clientKey)
     {
-        Assert.Pass();
+        //arrange
+        var rateLimiter = new SlidingWindowRateLimiter(_cache);
+        bool isConformed = false;
+        int cycleTime = (int)windowSize*1000,
+            requestTime = cycleTime/maxLimit,
+            cycleCount = 3;
+
+        //act
+        for(int cycle = 0; cycle < cycleCount; cycle++)
+        {
+            for (int req = 0; req < maxLimit; req++)
+            {
+                isConformed = await rateLimiter.ConformRequestAsync(windowSize, maxLimit, clientKey);
+                //assert
+                Assert.AreEqual(true, isConformed);
+                await Task.Delay(requestTime);
+            }
+
+        }
+    }
+
+    [TestCase(5, 10, "1")]
+    public async Task RateLimit_ShouldThrow429WhenExceedLimit(int windowSize, int maxLimit, string clientKey)
+    {
+        //arrange
+        var rateLimiter = new SlidingWindowRateLimiter(_cache);
+        bool isConformed = false;
+        int cycleTime = (int)windowSize*1000,
+            requestTime = cycleTime/maxLimit,
+            cycleCount = 3;
+
+        //act
+        for(int cycle = 0; cycle < cycleCount; cycle++)
+        {
+            for (int req = 0; req < maxLimit + 1; req++)
+            {
+                isConformed = await rateLimiter.ConformRequestAsync(windowSize, maxLimit, clientKey);
+                
+                //assert
+                if (req > maxLimit)     //intensional
+                    Assert.AreEqual(false, isConformed);
+
+                await Task.Delay(requestTime);
+            }
+
+        }
     }
 }
