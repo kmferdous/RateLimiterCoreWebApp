@@ -31,7 +31,7 @@ public class RateLimiterTests
             {
                 isConformed = await rateLimiter.ConformRequestAsync(windowSize, maxLimit, clientKey);
                 //assert
-                Assert.AreEqual(true, isConformed);
+                Assert.That(isConformed, Is.EqualTo(true));
                 await Task.Delay(requestTime);
             }
 
@@ -44,8 +44,8 @@ public class RateLimiterTests
         //arrange
         var rateLimiter = new SlidingWindowRateLimiter(_cache);
         bool isConformed = false;
-        int cycleTime = (int)windowSize*1000,
-            requestTime = cycleTime/maxLimit,
+        int cycleTime = (int)(windowSize)*1000,
+            requestTime = cycleTime/maxLimit - 100,
             cycleCount = 3;
 
         //act
@@ -57,7 +57,7 @@ public class RateLimiterTests
                 
                 //assert
                 if (req > maxLimit)     //intensional
-                    Assert.AreEqual(false, isConformed);
+                    Assert.That(isConformed, Is.EqualTo(false));
 
                 await Task.Delay(requestTime);
             }
